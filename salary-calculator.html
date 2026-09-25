@@ -115,8 +115,8 @@
     </div>
     
     <div class="date-selectors">
-      <select id="monthSelect" onchange="renderDays()"></select>
-      <select id="yearSelect" onchange="renderDays()"></select>
+      <select id="monthSelect" onchange="onDateChange()"></select>
+      <select id="yearSelect" onchange="onDateChange()"></select>
     </div>
 
     <div class="worked-days-bar">
@@ -144,32 +144,55 @@
 
   <script>
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    let store = JSON.parse(localStorage.getItem('salary_calc_data')) || {};
+    
+    // Load store safely
+    let store = {};
+    try {
+      store = JSON.parse(localStorage.getItem('salary_calc_data')) || {};
+    } catch (e) {
+      store = {};
+    }
+
+    // Load last viewed month/year or default to current date
+    const now = new Date();
+    let savedMonth = parseInt(localStorage.getItem('salary_calc_last_month')) || (now.getMonth() + 1);
+    let savedYear = parseInt(localStorage.getItem('salary_calc_last_year')) || now.getFullYear();
 
     function initSelectors() {
       const monthSel = document.getElementById('monthSelect');
       const yearSel = document.getElementById('yearSelect');
 
+      monthSel.innerHTML = '';
+      yearSel.innerHTML = '';
+
       months.forEach((m, idx) => {
         const opt = document.createElement('option');
         opt.value = idx + 1;
         opt.textContent = m;
-        if (idx + 1 === 10) opt.selected = true;
+        if (idx + 1 === savedMonth) opt.selected = true;
         monthSel.appendChild(opt);
       });
 
-      const currentYear = 2026;
-      for (let y = currentYear - 2; y <= currentYear + 3; y++) {
+      const startYear = 2024;
+      for (let y = startYear; y <= startYear + 5; y++) {
         const opt = document.createElement('option');
         opt.value = y;
         opt.textContent = y;
-        if (y === 2026) opt.selected = true;
+        if (y === savedYear) opt.selected = true;
         yearSel.appendChild(opt);
       }
     }
 
     function getKey(year, month) {
       return `${year}-${String(month).padStart(2, '0')}`;
+    }
+
+    function onDateChange() {
+      const month = parseInt(document.getElementById('monthSelect').value);
+      const year = parseInt(document.getElementById('yearSelect').value);
+      localStorage.setItem('salary_calc_last_month', month);
+      localStorage.setItem('salary_calc_last_year', year);
+      renderDays();
     }
 
     function renderDays() {
@@ -236,7 +259,11 @@
     }
 
     function saveData() {
-      localStorage.setItem('salary_calc_data', JSON.stringify(store));
+      try {
+        localStorage.setItem('salary_calc_data', JSON.stringify(store));
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
     }
 
     function calculateTotals() {
